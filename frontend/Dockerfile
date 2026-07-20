@@ -1,6 +1,6 @@
 FROM node:25-alpine AS deps
 WORKDIR /app
-RUN npm install -g npm@11
+RUN npm install -g npm@11.6.2
 COPY frontend/package.json frontend/package-lock.json ./
 COPY frontend/scripts/ ./scripts/
 RUN npm ci
