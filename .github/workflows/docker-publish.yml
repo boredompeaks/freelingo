@@ -8,8 +8,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/artcc/freelingo-backend
-  FRONTEND_IMAGE: ghcr.io/artcc/freelingo-frontend
+  BACKEND_IMAGE: ghcr.io/boredompeaks/freelingo-backend
+  FRONTEND_IMAGE: ghcr.io/boredompeaks/freelingo-frontend
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:

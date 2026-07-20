@@ -22,7 +22,13 @@ from app.schemas.flashcards import (
     FlashcardReview,
     VocabularyListResponse,
 )
-from app.services.flashcard_sm2 import generate_flashcards, lookup_word, sm2_update
+from app.services.flashcard_fsrs import (
+    Rating,
+    fsrs_retrievability,
+    fsrs_update,
+    generate_flashcards,
+    lookup_word,
+)
 from app.services.llm_adapter import (
     LLMError,
     LLMTimeoutError,
@@ -84,7 +90,14 @@ async def get_due_flashcards(
     )
     total = count_result.scalar()
 
-    return FlashcardListResponse(due=due, total=total)
+    due_responses = [
+        FlashcardResponse.model_validate(card, from_attributes=True).model_copy(
+            update={"retrievability": fsrs_retrievability(card)}
+        )
+        for card in due
+    ]
+
+    return FlashcardListResponse(due=due_responses, total=total)
 
 
 @router.get("/all", response_model=list[FlashcardResponse])
@@ -188,7 +201,7 @@ async def review_flashcard(
     if not card or card.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flashcard not found")
 
-    card = sm2_update(card, data.quality)
+    card = fsrs_update(card, Rating(data.rating))
     await db.commit()
     await db.refresh(card)
 
@@ -197,7 +210,7 @@ async def review_flashcard(
         current_user.id,
         flashcard_reviewed=True,
         skill="vocabulary",
-        skill_score=min(data.quality / 5.0, 1.0),
+        skill_score=min(data.rating / 4.0, 1.0),
         study_plan_id=plan.id,
     )
     return card

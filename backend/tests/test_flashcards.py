@@ -21,67 +21,202 @@ async def _seed_plan(db_session, user_id: int):
     )
 
 
-from app.services.flashcard_sm2 import sm2_update
+from app.services.flashcard_fsrs import Rating, State, fsrs_retrievability, fsrs_update
 
 
 class MockCard:
-    def __init__(self, ease_factor=2.5, interval=0, repetitions=0):
-        self.ease_factor = ease_factor
-        self.interval = interval
-        self.repetitions = repetitions
+    """Mock card with FSRS fields for unit-testing the algorithm."""
+
+    def __init__(
+        self,
+        stability=0.0,
+        difficulty=0.0,
+        state=0,
+        reps=0,
+        lapses=0,
+        last_review=None,
+        scheduled_days=0,
+    ):
+        self.stability = stability
+        self.difficulty = difficulty
+        self.state = state
+        self.reps = reps
+        self.lapses = lapses
+        self.last_review = last_review
+        self.scheduled_days = scheduled_days
         self.next_review = date.today()
 
 
-def test_sm2_quality_0_resets():
-    card = MockCard(ease_factor=2.5, interval=10, repetitions=3)
-    card = sm2_update(card, 0)
-    assert card.repetitions == 0
-    assert card.interval == 1
+# ---------------------------------------------------------------------------
+# FSRS algorithm unit tests
+# ---------------------------------------------------------------------------
 
 
-def test_sm2_quality_3_first_correct():
+def test_fsrs_good_on_new_card():
+    """Rating Good on a new card should transition to Learning with a scheduled interval."""
     card = MockCard()
-    card = sm2_update(card, 3)
-    assert card.repetitions == 1
-    assert card.interval == 1
+    card = fsrs_update(card, Rating.Good)
+    assert card.state == State.Learning
+    assert card.reps == 1
+    assert card.stability > 0
+    assert card.scheduled_days >= 1
+    assert card.next_review >= date.today()
 
 
-def test_sm2_quality_3_second_correct():
-    card = MockCard(repetitions=1, interval=1)
-    card = sm2_update(card, 3)
-    assert card.repetitions == 2
-    assert card.interval == 6
+def test_fsrs_easy_on_new_card():
+    """Rating Easy on a new card should transition directly to Review."""
+    card = MockCard()
+    card = fsrs_update(card, Rating.Easy)
+    assert card.state == State.Review
+    assert card.reps == 1
+    assert card.stability > 0
+    assert card.scheduled_days >= 1
 
 
-def test_sm2_quality_3_progression():
-    card = MockCard(ease_factor=2.5, interval=6, repetitions=2)
-    card = sm2_update(card, 3)
-    assert card.repetitions == 3
-    assert card.interval == 15
+def test_fsrs_again_on_new_card():
+    """Rating Again on a new card should stay in Learning with short interval."""
+    card = MockCard()
+    card = fsrs_update(card, Rating.Again)
+    assert card.state == State.Learning
+    assert card.reps == 1
+    assert card.scheduled_days == 1
 
 
-def test_sm2_ease_factor_decreases_on_fail():
-    card = MockCard(ease_factor=2.5)
-    card = sm2_update(card, 2)
-    assert card.ease_factor < 2.5
+def test_fsrs_hard_on_new_card():
+    """Rating Hard on a new card should stay in Learning."""
+    card = MockCard()
+    card = fsrs_update(card, Rating.Hard)
+    assert card.state == State.Learning
+    assert card.reps == 1
 
 
-def test_sm2_ease_factor_increases_on_perfect():
-    card = MockCard(ease_factor=2.5)
-    card = sm2_update(card, 5)
-    assert card.ease_factor > 2.5
+def test_fsrs_again_on_review_transitions_to_relearning():
+    """Rating Again on a Review card should transition to Relearning and increment lapses."""
+    card = MockCard(
+        stability=10.0,
+        difficulty=5.0,
+        state=State.Review,
+        reps=5,
+        lapses=0,
+        last_review=date.today() - timedelta(days=5),
+    )
+    card = fsrs_update(card, Rating.Again)
+    assert card.state == State.Relearning
+    assert card.lapses == 1
+    assert card.reps == 6
+    assert card.scheduled_days == 1
 
 
-def test_sm2_ease_factor_floor():
-    card = MockCard(ease_factor=1.3)
-    card = sm2_update(card, 1)
-    assert card.ease_factor == 1.3
+def test_fsrs_good_on_review_stays_review():
+    """Rating Good on a Review card should stay in Review with updated stability."""
+    card = MockCard(
+        stability=10.0,
+        difficulty=5.0,
+        state=State.Review,
+        reps=5,
+        lapses=0,
+        last_review=date.today() - timedelta(days=5),
+    )
+    old_stability = card.stability
+    card = fsrs_update(card, Rating.Good)
+    assert card.state == State.Review
+    assert card.reps == 6
+    assert card.stability != old_stability  # stability should change
 
 
-def test_sm2_next_review_is_future():
-    card = MockCard(interval=3)
-    card = sm2_update(card, 4)
-    assert card.next_review == date.today() + timedelta(days=card.interval)
+def test_fsrs_good_on_relearning_transitions_to_review():
+    """Rating Good on a Relearning card should transition back to Review."""
+    card = MockCard(
+        stability=2.0,
+        difficulty=6.0,
+        state=State.Relearning,
+        reps=6,
+        lapses=1,
+        last_review=date.today() - timedelta(days=1),
+    )
+    card = fsrs_update(card, Rating.Good)
+    assert card.state == State.Review
+    assert card.reps == 7
+
+
+def test_fsrs_again_on_relearning_stays_relearning():
+    """Rating Again on a Relearning card should keep it in Relearning."""
+    card = MockCard(
+        stability=2.0,
+        difficulty=6.0,
+        state=State.Relearning,
+        reps=6,
+        lapses=1,
+        last_review=date.today() - timedelta(days=1),
+    )
+    card = fsrs_update(card, Rating.Again)
+    assert card.state == State.Relearning
+    assert card.scheduled_days == 1
+
+
+def test_fsrs_retrievability_no_review():
+    """Retrievability should be 1.0 when the card has never been reviewed."""
+    card = MockCard()
+    r = fsrs_retrievability(card)
+    assert r == 1.0
+
+
+def test_fsrs_retrievability_after_review():
+    """Retrievability should be < 1.0 after some days have elapsed since review."""
+    card = MockCard(
+        stability=5.0,
+        last_review=date.today() - timedelta(days=10),
+    )
+    r = fsrs_retrievability(card)
+    assert 0.0 < r < 1.0
+
+
+def test_fsrs_retrievability_same_day():
+    """Retrievability should be 1.0 on the day of review."""
+    card = MockCard(
+        stability=5.0,
+        last_review=date.today(),
+    )
+    r = fsrs_retrievability(card)
+    assert r == 1.0
+
+
+def test_fsrs_difficulty_clamped():
+    """Difficulty should always be clamped between 1.0 and 10.0."""
+    card = MockCard()
+    card = fsrs_update(card, Rating.Again)
+    assert 1.0 <= card.difficulty <= 10.0
+
+    card2 = MockCard()
+    card2 = fsrs_update(card2, Rating.Easy)
+    assert 1.0 <= card2.difficulty <= 10.0
+
+
+def test_fsrs_next_review_is_future():
+    """next_review should always be today or in the future after an update."""
+    card = MockCard(
+        stability=10.0,
+        difficulty=5.0,
+        state=State.Review,
+        reps=5,
+        last_review=date.today() - timedelta(days=5),
+    )
+    card = fsrs_update(card, Rating.Good)
+    assert card.next_review >= date.today()
+
+
+def test_fsrs_invalid_rating_raises():
+    """Passing an invalid rating value should raise ValueError."""
+    card = MockCard()
+    with pytest.raises(ValueError, match="Invalid rating"):
+        fsrs_update(card, 0)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="Invalid rating"):
+        fsrs_update(card, 5)  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Router / endpoint integration tests
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -102,8 +237,8 @@ async def test_create_flashcard(client, test_user, db_session):
     assert response.status_code == 200
     data = response.json()
     assert data["word"] == "hello"
-    assert data["ease_factor"] == 2.5
-    assert data["interval"] == 0
+    assert data["stability"] == 0.0
+    assert data["state"] == 0  # New
 
 
 @pytest.mark.asyncio
@@ -154,12 +289,13 @@ async def test_review_flashcard(client, test_user, db_session):
     response = await client.post(
         f"/api/flashcards/{card.id}/review",
         headers=headers,
-        json={"quality": 4},
+        json={"rating": 3},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["repetitions"] == 1
-    assert data["interval"] == 1
+    assert data["reps"] == 1
+    assert data["state"] == State.Learning
+    assert data["stability"] > 0
 
 
 @pytest.mark.asyncio

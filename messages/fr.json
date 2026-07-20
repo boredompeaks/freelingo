@@ -676,8 +676,9 @@
     "noCardsHint": "Utilisez + Générer pour créer vos premières fiches avec l'IA",
     "tapToHide": "appuyez pour masquer",
     "tapToReveal": "appuyez pour afficher",
-    "interval": "Intervalle",
-    "repetitions": "Rép"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "Tuteur IA",

@@ -148,11 +148,11 @@ Auth required (`get_current_user`). Serves static vocabulary data across the bac
 
 ## Flashcards — `/api/flashcards`
 
-- **GET `/due`** — Rate limit: 60/min. Cards pending review today (SM-2 ordering)
+- **GET `/due`** — Rate limit: 60/min. Cards pending review today (FSRS ordering). Response includes per-card `retrievability` score.
 - **GET `/all`** — Rate limit: 60/min. All user's flashcards
 - **POST `/`** — Rate limit: 60/min. Creates flashcard manually
 - **POST `/bulk`** — Rate limit: 60/min. Creates multiple flashcards at once; skips duplicates (by word) for the user
-- **POST `/{card_id}/review`** — Rate limit: 60/min. Records SM-2 review (quality 0–5)
+- **POST `/{card_id}/review`** — Rate limit: 60/min. Records FSRS review. Body: `{rating: 1–4}` (1=Again, 2=Hard, 3=Good, 4=Easy). Returns updated card with FSRS fields: stability, difficulty, state, reps, lapses, scheduled_days, retrievability.
 - **POST `/generate`** — Rate limit: 20/min. Generates N flashcards via LLM with native-language translations
 - **POST `/from-word`** — Rate limit: 30/min. Saves a single word as a flashcard: body `{word, context, cefr_level}`; AI generates definition/example/translation; sets `source="from_text"`; returns `FlashcardResponse`
 - **GET `/vocabulary`** — Rate limit: 60/min. Returns user's saved-from-text flashcards (`source="from_text"`), ordered by `created_at` desc

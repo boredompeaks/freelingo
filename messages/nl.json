@@ -676,8 +676,9 @@
     "noCardsHint": "Gebruik + Genereer om je eerste flashcards met AI te maken",
     "tapToHide": "tik om te verbergen",
     "tapToReveal": "tik om te tonen",
-    "interval": "Interval",
-    "repetitions": "Herh"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "AI-tutor",

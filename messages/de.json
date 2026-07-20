@@ -676,8 +676,9 @@
     "noCardsHint": "Nutze + Erstellen, um deine ersten Karteikarten mit KI zu erstellen",
     "tapToHide": "tippen zum ausblenden",
     "tapToReveal": "tippen zum einblenden",
-    "interval": "Intervall",
-    "repetitions": "Whlg"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "KI-Tutor",

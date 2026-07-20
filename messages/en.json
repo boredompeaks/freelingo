@@ -676,8 +676,9 @@
     "noCardsHint": "Use + Generate to create your first cards with AI",
     "tapToHide": "tap to hide",
     "tapToReveal": "tap to reveal",
-    "interval": "Interval",
-    "repetitions": "Rep"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "AI Tutor",

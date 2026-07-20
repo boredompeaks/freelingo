@@ -22,7 +22,7 @@ class FlashcardBulkResponse(BaseModel):
 
 
 class FlashcardReview(BaseModel):
-    quality: int
+    rating: int = Field(ge=1, le=4)
 
 
 class FlashcardFromWordRequest(BaseModel):
@@ -46,20 +46,29 @@ class FlashcardResponse(BaseModel):
     example_sentence: str
     translation: str
     source: Optional[str] = None
-    ease_factor: float
-    interval: int
-    repetitions: int
+    stability: float
+    difficulty: float
+    state: int
+    reps: int
+    lapses: int
+    scheduled_days: int
+    last_review: date | None = None
+    retrievability: float | None = None
     next_review: date
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
     @field_serializer("next_review")
-    def serialize_next_review(self, v: date, _info):
+    def serialize_next_review(self, v: date, _info: object) -> str:
         return v.isoformat()
 
+    @field_serializer("last_review")
+    def serialize_last_review(self, v: date | None, _info: object) -> str | None:
+        return v.isoformat() if v else None
+
     @field_serializer("created_at")
-    def serialize_created_at(self, v: datetime, _info):
+    def serialize_created_at(self, v: datetime, _info: object) -> str:
         return v.isoformat()
 
 

@@ -48,8 +48,8 @@ from app.routers import (
 )
 from app.routers import config as config_router
 from app.routers import health as health_router
-from app.services.stt_service import OpenAISTTService, WhisperSTTService
-from app.services.tts_service import KokoroTTSService, OpenAITTSService
+from app.services.stt_service import AzureSTTService, OpenAISTTService, WhisperSTTService
+from app.services.tts_service import AzureTTSService, KokoroTTSService, OpenAITTSService
 
 
 def _run_migrations() -> None:
@@ -85,6 +85,14 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
             voice=settings.OPENAI_TTS_VOICE,
             speed=settings.OPENAI_TTS_SPEED,
         )
+    elif settings.TTS_PROVIDER == "azure":
+        if not settings.AZURE_SPEECH_KEY or not settings.AZURE_SPEECH_REGION:
+            raise ValueError("TTS_PROVIDER=azure requires AZURE_SPEECH_KEY and AZURE_SPEECH_REGION")
+        app.state.tts_service = AzureTTSService(
+            subscription_key=settings.AZURE_SPEECH_KEY,
+            region=settings.AZURE_SPEECH_REGION,
+            voice=settings.AZURE_TTS_VOICE,
+        )
     else:
         app.state.tts_service = KokoroTTSService(settings.TTS_BASE_URL, settings.TTS_VOICE)
 
@@ -94,6 +102,13 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
         app.state.stt_service = OpenAISTTService(
             api_key=settings.OPENAI_API_KEY,
             model=settings.OPENAI_STT_MODEL,
+        )
+    elif settings.STT_PROVIDER == "azure":
+        if not settings.AZURE_SPEECH_KEY or not settings.AZURE_SPEECH_REGION:
+            raise ValueError("STT_PROVIDER=azure requires AZURE_SPEECH_KEY and AZURE_SPEECH_REGION")
+        app.state.stt_service = AzureSTTService(
+            subscription_key=settings.AZURE_SPEECH_KEY,
+            region=settings.AZURE_SPEECH_REGION,
         )
     else:
         app.state.stt_service = WhisperSTTService(settings.STT_BASE_URL)

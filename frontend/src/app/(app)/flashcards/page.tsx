@@ -17,9 +17,13 @@ interface CardData {
   definition: string
   example_sentence: string
   translation: string
-  ease_factor: number
-  interval: number
-  repetitions: number
+  stability: number
+  difficulty: number
+  state: number
+  reps: number
+  lapses: number
+  scheduled_days: number
+  retrievability?: number | null
   source?: string | null
 }
 
@@ -64,32 +68,57 @@ export default function FlashcardsPage() {
     loadDue()
   }, [loadDue, activeLangCode])
 
-  async function reviewCard(quality: number) {
-    if (cards.length === 0) return
-    const card = cards[current]
-    await apiFetch(`/api/flashcards/${card.id}/review`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quality }),
-    })
-    if (current < cards.length - 1) {
-      setCurrent(current + 1)
-      setFlipped(false)
-    } else {
-      await loadDue()
+  const [reviewing, setReviewing] = useState(false)
+
+  async function reviewCard(rating: number) {
+    if (cards.length === 0 || reviewing) return
+    if (rating < 1 || rating > 4) return
+    setReviewing(true)
+    try {
+      const card = cards[current]
+      const res = await apiFetch(`/api/flashcards/${card.id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating }),
+      })
+      if (!res.ok) {
+        // Review failed — keep card in queue, do not advance
+        return
+      }
+      if (current < cards.length - 1) {
+        setCurrent(current + 1)
+        setFlipped(false)
+      } else {
+        await loadDue()
+      }
+    } catch {
+      // Network error — card stays, user can retry
+    } finally {
+      setReviewing(false)
     }
   }
 
-  async function handleSpeakingTranscription(transcription: string) {
+  async function handleSpeakingTranscription(transcription: string, assessment?: any) {
     if (cards.length === 0) return
     const card = cards[current]
-    const norm = (s: string) =>
-      s
-        .trim()
-        .toLowerCase()
-        .replace(/[\p{P}\p{S}\s]+/gu, '')
-    const isCorrect = norm(transcription) === norm(card.word)
-    await reviewCard(isCorrect ? 5 : 2)
+
+    let isCorrect = false
+
+    // If we have an Azure pronunciation score, use it
+    if (assessment && assessment.pronunciation_score !== undefined && assessment.pronunciation_score !== null) {
+      // Treat >= 60 as correct pronunciation
+      isCorrect = assessment.pronunciation_score >= 60
+    } else {
+      // Fallback text matching
+      const norm = (s: string) =>
+        s
+          .trim()
+          .toLowerCase()
+          .replace(/[\p{P}\p{S}\s]+/gu, '')
+      isCorrect = norm(transcription) === norm(card.word)
+    }
+
+    await reviewCard(isCorrect ? 4 : 1)
   }
 
   async function generateCards(e: React.FormEvent) {
@@ -353,15 +382,16 @@ export default function FlashcardsPage() {
               {flipped && (
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { key: 'again', q: 0, color: '#ff5555' },
-                    { key: 'hard', q: 3, color: 'var(--fl-muted-1)' },
-                    { key: 'good', q: 4, color: 'var(--fl-muted-0)' },
-                    { key: 'easy', q: 5, color: 'var(--fl-fg)' },
-                  ].map(({ key, q, color }) => (
+                    { key: 'again', rating: 1, color: '#ff5555' },
+                    { key: 'hard', rating: 2, color: 'var(--fl-muted-1)' },
+                    { key: 'good', rating: 3, color: 'var(--fl-muted-0)' },
+                    { key: 'easy', rating: 4, color: 'var(--fl-fg)' },
+                  ].map(({ key, rating, color }) => (
                     <button
-                      key={q}
-                      onClick={() => reviewCard(q)}
-                      className="border-fl-border text-fl-label hover:border-fl-border-2 min-w-[80px] flex-1 border py-3 font-mono tracking-widest uppercase transition-all"
+                      key={rating}
+                      onClick={() => reviewCard(rating)}
+                      disabled={reviewing}
+                      className="border-fl-border text-fl-label hover:border-fl-border-2 min-w-[80px] flex-1 border py-3 font-mono tracking-widest uppercase transition-all disabled:opacity-40"
                       style={{ color }}
                     >
                       {t(key)}
@@ -413,15 +443,20 @@ export default function FlashcardsPage() {
                   onTranscription={handleSpeakingTranscription}
                   maxSeconds={5}
                   className="mt-2"
+                  referenceText={cards[current].word}
+                  language={targetLanguageCode}
                 />
               </div>
             </div>
           )}
 
           <p className="text-fl-hint text-fl-border-2 text-center font-mono tracking-widest uppercase">
-            EF {cards[current].ease_factor.toFixed(2)} · {t('interval')}{' '}
-            {cards[current].interval}d · {t('repetitions')}{' '}
-            {cards[current].repetitions}
+            {t('stability')} {cards[current].stability.toFixed(1)}d ·{' '}
+            {t('difficulty')} {cards[current].difficulty.toFixed(1)} ·{' '}
+            {t('nextIn')} {cards[current].scheduled_days}d
+            {cards[current].retrievability != null && (
+              <> · R {(cards[current].retrievability! * 100).toFixed(0)}%</>
+            )}
           </p>
         </>
       )}

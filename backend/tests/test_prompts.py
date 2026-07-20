@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.routers.chat import _build_tutor_system_prompt
 from app.services.conversation_pipeline import _build_conversation_system_prompt
-from app.services.flashcard_sm2 import _get_lang_hint
+from app.services.flashcard_fsrs import _get_lang_hint
 from app.services.language_helpers import (
     get_comprehension_length_guidance,
     get_iso639,

@@ -5,11 +5,22 @@ import { useTranslations } from 'next-intl'
 import { apiFetch } from '@/lib/api'
 import { float32ToWav } from '@/lib/audio'
 
+interface PronunciationAssessment {
+  text: string
+  accuracy_score?: number
+  pronunciation_score?: number
+  completeness_score?: number
+  fluency_score?: number
+  words?: any[]
+}
+
 interface VoiceRecorderProps {
-  onTranscription: (text: string) => void
+  onTranscription: (text: string, assessment?: PronunciationAssessment) => void
   maxSeconds?: number
   disabled?: boolean
   className?: string
+  referenceText?: string
+  language?: string
 }
 
 type RecorderState = 'idle' | 'recording' | 'transcribing' | 'error'
@@ -19,6 +30,8 @@ export function VoiceRecorder({
   maxSeconds = 5,
   disabled = false,
   className = '',
+  referenceText,
+  language = 'en-US',
 }: VoiceRecorderProps) {
   const [state, setState] = useState<RecorderState>('idle')
   const streamRef = useRef<MediaStream | null>(null)
@@ -87,13 +100,25 @@ export function VoiceRecorder({
     )
 
     try {
-      const res = await apiFetch('/api/stt', {
-        method: 'POST',
-        body: formData,
-      })
-      if (!res.ok) throw new Error(`STT error ${res.status}`)
-      const { text } = (await res.json()) as { text: string }
-      onTranscription(text)
+      if (referenceText) {
+        formData.append('reference_text', referenceText)
+        formData.append('language', language)
+        const res = await apiFetch('/api/stt/pronunciation', {
+          method: 'POST',
+          body: formData,
+        })
+        if (!res.ok) throw new Error(`STT error ${res.status}`)
+        const assessment = (await res.json()) as PronunciationAssessment
+        onTranscription(assessment.text, assessment)
+      } else {
+        const res = await apiFetch('/api/stt', {
+          method: 'POST',
+          body: formData,
+        })
+        if (!res.ok) throw new Error(`STT error ${res.status}`)
+        const { text } = (await res.json()) as { text: string }
+        onTranscription(text)
+      }
       setState('idle')
     } catch {
       setState('error')

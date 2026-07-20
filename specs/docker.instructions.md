@@ -9,8 +9,8 @@ applyTo: "docker-compose.yml, .env*, **/Dockerfile"
 
 - **`postgres`** — Image: `postgres:16-alpine`. Ports: 5432 (internal). Phase: 1. Notes: Health check via `pg_isready`
 - **`redis`** — Image: `redis:7-alpine`. Ports: 6379 (internal). Phase: 1. Notes: Password-protected, health check via `redis-cli ping`
-- **`backend`** — Image: `ghcr.io/artcc/freelingo-backend:latest`. Ports: 8000 (internal). Phase: 1. Notes: Runs Alembic migrations automatically before Uvicorn. Depends on healthy postgres + redis.
-- **`frontend`** — Image: `ghcr.io/artcc/freelingo-frontend:latest`. Ports: 3000 (host). Phase: 1. Notes: Receives `BACKEND_URL` as runtime env var. Depends on backend.
+- **`backend`** — Image: `ghcr.io/boredompeaks/freelingo-backend:latest`. Ports: 8000 (internal). Phase: 1. Notes: Runs Alembic migrations automatically before Uvicorn. Depends on healthy postgres + redis.
+- **`frontend`** — Image: `ghcr.io/boredompeaks/freelingo-frontend:latest`. Ports: 3000 (host). Phase: 1. Notes: Receives `BACKEND_URL` as runtime env var. Depends on backend.
 - **`kokoro`** — Image: `ghcr.io/remsky/kokoro-fastapi-gpu:latest-cu128`. Ports: 8880 (internal). Phase: 2. Notes: TTS — upstream image (0.4.0+), cu128 variant for Blackwell/RTX 50-series. Only needed when `TTS_PROVIDER=local`.
 - **`whisper`** — Image: `onerahmet/openai-whisper-asr-webservice:latest-gpu`. Ports: 9000 (internal). Phase: 2. Notes: STT — GPU via NVIDIA deploy block. Only needed when `STT_PROVIDER=local`.
 
@@ -20,8 +20,8 @@ Ollama is assumed to run on the host machine for GPU access, reached from contai
 
 ## Image channels
 
-- Production — Branch: `main`; Backend image: `ghcr.io/artcc/freelingo-backend`; Frontend image: `ghcr.io/artcc/freelingo-frontend`
-- Develop — Branch: `develop`; Backend image: `ghcr.io/artcc/freelingo-backend-develop`; Frontend image: `ghcr.io/artcc/freelingo-frontend-develop`
+- Production — Branch: `main`; Backend image: `ghcr.io/boredompeaks/freelingo-backend`; Frontend image: `ghcr.io/boredompeaks/freelingo-frontend`
+- Develop — Branch: `develop`; Backend image: `ghcr.io/boredompeaks/freelingo-backend-develop`; Frontend image: `ghcr.io/boredompeaks/freelingo-frontend-develop`
 
 Both channels publish `:latest` and a short SHA tag on every push. The compose file uses production images by default.
 
@@ -85,7 +85,7 @@ The canonical reference is `.env.example` at the repo root. The categories opera
 - Email / SMTP — Key variables: `EMAIL_ENABLED`, `SMTP_*`, `APP_BASE_URL`; Notes: Required for email verification and password reset
 - Languages — Key variables: `AVAILABLE_TARGET_LANGUAGES`; Notes: Operator-configured target-language list; backend filters unsupported codes
 - Usage quotas — Key variables: `DEFAULT_CONVERSATION_*`, `DEFAULT_MONTHLY_TOKENS_LIMIT`, `ASSESSMENT_VOICE_TRIAL_DURATION_SECONDS`; Notes: Defaults for new/subscribed users and the post-assessment voice demo; quota values of `0` mean unlimited
-- LLM — Key variables: `LLM_PROVIDER`, `OLLAMA_*`, `OPENAI_*`, `ANTHROPIC_*`, `DEEPSEEK_*`; Notes: Provider selected via `LLM_PROVIDER`
+- LLM — Key variables: `LLM_PROVIDER`, `OLLAMA_*`, `OPENAI_*`, `ANTHROPIC_*`, `DEEPSEEK_*`, `VERTEX_*`; Notes: Provider selected via `LLM_PROVIDER`
 - TTS — Key variables: `TTS_PROVIDER`, `TTS_BASE_URL`, `TTS_VOICE`, `OPENAI_TTS_*`; Notes: `local` or `openai`
 - STT — Key variables: `STT_PROVIDER`, `STT_BASE_URL`, `STT_MODEL`, `STT_ENGINE`, `OPENAI_STT_MODEL`; Notes: `local` or `openai`
 - Stripe — Key variables: `STRIPE_ENABLED`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_*`; Notes: Optional; disabled by default. Price IDs are configured manually from Stripe Dashboard when enabled

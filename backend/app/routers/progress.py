@@ -46,7 +46,7 @@ async def _get_vocabulary_level_progress(
         select(Flashcard.word).where(
             Flashcard.user_id == user_id,
             Flashcard.study_plan_id == plan.id,
-            Flashcard.repetitions > 0,
+            Flashcard.reps > 0,
         )
     )
     mastered_words = {word.strip().lower() for word in result.scalars().all()}

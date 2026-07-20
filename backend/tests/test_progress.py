@@ -68,7 +68,7 @@ async def test_progress_with_data(client, test_user, db_session):
                 definition="Definition",
                 example_sentence="Example sentence.",
                 translation="Translation",
-                repetitions=1,
+                reps=1,
             ),
             Flashcard(
                 user_id=user.id,
@@ -77,7 +77,7 @@ async def test_progress_with_data(client, test_user, db_session):
                 definition="Definition",
                 example_sentence="Example sentence.",
                 translation="Translation",
-                repetitions=0,
+                reps=0,
             ),
         ]
     )

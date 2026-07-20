@@ -676,8 +676,9 @@
     "noCardsHint": "Используй + Создать, чтобы создать первые карточки с ИИ",
     "tapToHide": "нажми чтобы скрыть",
     "tapToReveal": "нажми чтобы показать",
-    "interval": "Интервал",
-    "repetitions": "Повт"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "ИИ-репетитор",

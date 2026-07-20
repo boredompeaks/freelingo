@@ -60,8 +60,8 @@ async def test_get_all_flashcards_returns_non_due_cards(client, test_user, db_se
         example_sentence="It was serendipity that we met.",
         translation="serendipia",
         next_review=date.today() + timedelta(days=10),
-        interval=10,
-        repetitions=2,
+        scheduled_days=10,
+        reps=2,
     )
     db_session.add(future_card)
     await db_session.commit()

@@ -27,6 +27,7 @@ MAX_CONTEXT_TOKENS = {
     "anthropic": 200000,
     "deepseek": 128000,
     "ollama": 8192,
+    "vertex": 1048576,
 }
 
 
@@ -104,31 +105,86 @@ class LLMStream:
 
 class LLMAdapter:
     def __init__(self):
-        self.provider = settings.LLM_PROVIDER
-        if self.provider == "ollama":
-            self.client = AsyncOpenAI(
-                base_url=f"{settings.OLLAMA_BASE_URL}/v1",
-                api_key="ollama",
-            )
-            self.model = settings.OLLAMA_MODEL
-        elif self.provider == "openai":
-            self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-            self.model = settings.OPENAI_MODEL
-        elif self.provider == "deepseek":
-            self.client = AsyncOpenAI(
-                base_url="https://api.deepseek.com/v1",
-                api_key=settings.DEEPSEEK_API_KEY,
-            )
-            self.model = settings.DEEPSEEK_MODEL
-        elif self.provider == "anthropic":
-            self._anthropic = _anthropic.AsyncAnthropic(
-                api_key=settings.ANTHROPIC_API_KEY,
-                # Retries are handled by _call_with_retry; disable the SDK's
-                # built-in retry logic to avoid exponential back-off stacking.
-                max_retries=0,
-            )
-            self.client = None
-            self.model = settings.ANTHROPIC_MODEL
+        try:
+            self.provider = settings.LLM_PROVIDER
+            if self.provider == "ollama":
+                self.client = AsyncOpenAI(
+                    base_url=f"{settings.OLLAMA_BASE_URL}/v1",
+                    api_key="ollama",
+                )
+                self.model = settings.OLLAMA_MODEL
+            elif self.provider == "openai":
+                self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+                self.model = settings.OPENAI_MODEL
+            elif self.provider == "deepseek":
+                self.client = AsyncOpenAI(
+                    base_url="https://api.deepseek.com/v1",
+                    api_key=settings.DEEPSEEK_API_KEY,
+                )
+                self.model = settings.DEEPSEEK_MODEL
+            elif self.provider == "vertex":
+                base_url = f"https://{settings.VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/{settings.VERTEX_PROJECT_ID}/locations/{settings.VERTEX_LOCATION}/endpoints/openapi"
+                self.client = AsyncOpenAI(
+                    base_url=base_url,
+                    api_key="dummy_vertex_token",
+                )
+                self.model = settings.VERTEX_MODEL
+                self._credentials = None
+            elif self.provider == "anthropic":
+                self._anthropic = _anthropic.AsyncAnthropic(
+                    api_key=settings.ANTHROPIC_API_KEY,
+                    # Retries are handled by _call_with_retry; disable the SDK's
+                    # built-in retry logic to avoid exponential back-off stacking.
+                    max_retries=0,
+                )
+                self.client = None
+                self.model = settings.ANTHROPIC_MODEL
+        except Exception as e:
+            logger.error(f"Error initializing LLMAdapter: {e}")
+            raise
+
+    def _get_vertex_token(self) -> str:
+        try:
+            if not getattr(self, "_credentials", None):
+                # 1. Try inline service account JSON
+                if settings.VERTEX_SERVICE_ACCOUNT_JSON:
+                    import json
+
+                    from google.oauth2 import service_account
+
+                    info = json.loads(settings.VERTEX_SERVICE_ACCOUNT_JSON)
+                    self._credentials = service_account.Credentials.from_service_account_info(
+                        info, scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                    )
+                # 2. Try service account JSON file path
+                elif settings.VERTEX_SERVICE_ACCOUNT_JSON_PATH:
+                    from google.oauth2 import service_account
+
+                    self._credentials = service_account.Credentials.from_service_account_file(
+                        settings.VERTEX_SERVICE_ACCOUNT_JSON_PATH,
+                        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                    )
+                # 3. Fallback to Application Default Credentials (ADC)
+                else:
+                    from google.auth import default as auth_default
+
+                    self._credentials, _ = auth_default(
+                        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                    )
+
+            # Refresh token if not present or expired/valid is False
+            if self._credentials and not self._credentials.valid:
+                import google.auth.transport.requests
+
+                request = google.auth.transport.requests.Request()
+                self._credentials.refresh(request)
+
+            if self._credentials and self._credentials.token:
+                return self._credentials.token
+            return ""
+        except Exception as e:
+            logger.error(f"Error fetching Vertex AI token: {e}")
+            raise LLMUnavailableError(f"Vertex AI authentication failed: {e}") from e
 
     async def _call_with_retry(self, fn, *args, **kwargs):
         last_error = None
@@ -164,34 +220,48 @@ class LLMAdapter:
         return await self._call_with_retry(self._do_chat, messages, stream)
 
     async def _do_chat(self, messages: list[dict], stream: bool = False):
-        if self.provider == "anthropic":
-            result = await self._anthropic_chat(messages, stream)
-            # Wrap in LLMStream so callers always get a uniform interface.
-            # Anthropic events have a different structure so usage will remain
-            # None, but no code will break.
-            return LLMStream(result) if stream else result
+        try:
+            if self.provider == "anthropic":
+                result = await self._anthropic_chat(messages, stream)
+                # Wrap in LLMStream so callers always get a uniform interface.
+                # Anthropic events have a different structure so usage will remain
+                # None, but no code will break.
+                return LLMStream(result) if stream else result
 
-        # For Ollama, OpenAI and DeepSeek (all OpenAI-compatible):
-        # pass stream_options so the final chunk includes token usage.
-        # Defensively build kwargs to stay compatible with older SDK versions.
-        extra: dict = {}
-        if stream:
-            extra["stream_options"] = {"include_usage": True}
+            if self.provider == "vertex":
+                token = self._get_vertex_token()
+                if self.client:
+                    self.client.api_key = token
 
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            stream=stream,
-            timeout=REQUEST_TIMEOUT,
-            **extra,
-        )
-        if stream:
-            return LLMStream(response)
+            # For Ollama, OpenAI, DeepSeek, and Vertex (all OpenAI-compatible):
+            # pass stream_options so the final chunk includes token usage.
+            # Defensively build kwargs to stay compatible with older SDK versions.
+            extra: dict = {}
+            if stream:
+                extra["stream_options"] = {"include_usage": True}
 
-        content = response.choices[0].message.content
-        if not content:
-            raise LLMResponseError("LLM returned empty response")
-        return content
+            if not self.client:
+                raise LLMUnavailableError("LLM client not initialized")
+
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                stream=stream,
+                timeout=REQUEST_TIMEOUT,
+                **extra,
+            )
+            if stream:
+                return LLMStream(response)
+
+            content = response.choices[0].message.content
+            if not content:
+                raise LLMResponseError("LLM returned empty response")
+            return content
+        except Exception as e:
+            if isinstance(e, LLMError):
+                raise e
+            logger.error(f"Error in _do_chat: {e}")
+            raise LLMError(f"LLM chat call failed: {e}") from e
 
     async def structured_output(self, messages: list[dict], schema: type[BaseModel]) -> BaseModel:
         # Use JSON mode for all providers — more reliable across versions

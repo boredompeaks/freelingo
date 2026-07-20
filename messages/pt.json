@@ -676,8 +676,9 @@
     "noCardsHint": "Usa + Gerar para criar os teus primeiros cartões com IA",
     "tapToHide": "toca para esconder",
     "tapToReveal": "toca para mostrar",
-    "interval": "Intervalo",
-    "repetitions": "Rep"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "Tutor IA",

@@ -8,3 +8,12 @@ class TTSRequest(BaseModel):
 
 class STTResponse(BaseModel):
     text: str
+
+
+class PronunciationAssessmentResponse(BaseModel):
+    text: str
+    accuracy_score: float | None = None
+    pronunciation_score: float | None = None
+    completeness_score: float | None = None
+    fluency_score: float | None = None
+    words: list[dict] | None = None

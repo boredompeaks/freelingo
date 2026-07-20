@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.4] - 2026-07-20
+
+### Fixed
+
+- **Race condition**: Resolved a double-click/race condition on the lesson complete page's "go to dashboard" button by temporarily disabling it during navigation state transitions.
+
+## [1.9.3] - 2026-07-20
+
+### Added
+
+- **Hear Any Word inline**: Users can now right-click (desktop) or long-press (mobile) any target-language text element throughout the app to instantly hear it spoken via TTS, matching the audio experience of explicitly generated flashcards.
+
+## [1.9.2] - 2026-07-20
+
+### Fixed
+
+- **Translation fix**: Corrected native-language explanations in lesson, grammar, and vocabulary UI components not displaying due to a localization hook mismatch (`tTargetLang` vs `tLang`) causing `nativeLanguageName` to evaluate poorly and hide the UI elements, as well as fixing a Python syntax error.
+
+## [1.9.1] - 2026-07-20
+
+### Added
+
+- **Azure Neural TTS & Pronunciation Assessment**: Replaced local-only/OpenAI-only TTS and STT options with Microsoft Azure Cognitive Services. Pronunciation assessment evaluates speech natively via Azure (with accuracy, completeness, and fluency scores), gracefully cascading to LLM-based fallback assessment if an exact match isn't detected and Azure assessment is unavailable.
+
+## [1.9.0] - 2026-07-20
+
+### Changed
+
+- **FSRS Spaced Repetition**: Migrated flashcards from the legacy SM-2 algorithm to the state-of-the-art FSRS (Free Spaced Repetition Scheduler) v5 algorithm. Included a 4-button review scale ("Again", "Hard", "Good", "Easy") instead of the previous 1-5 quality scale, tracking memory stability and difficulty more accurately.
+
 ## [1.8.22] - 2026-07-04
 
 ### Added

@@ -37,7 +37,7 @@ interface ProgressSummary {
 interface FlashcardProgress {
   id: number
   word: string
-  repetitions: number
+  reps: number
 }
 
 interface StudyPlan {
@@ -230,7 +230,7 @@ export default function ProgressPage() {
   )
 
   const masteredWordSet = new Set(
-    flashcards.filter((f) => f.repetitions > 0).map((f) => f.word.toLowerCase())
+    flashcards.filter((f) => f.reps > 0).map((f) => f.word.toLowerCase())
   )
   const totalMastered = displayVocabSets.reduce(
     (a, s) =>

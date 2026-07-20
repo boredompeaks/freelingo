@@ -29,7 +29,7 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/artcc/freelingo-backend:latest
+    image: ghcr.io/boredompeaks/freelingo-backend:latest
     pull_policy: always
     container_name: freelingo-backend
     restart: unless-stopped
@@ -48,10 +48,16 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL}
+      VERTEX_PROJECT_ID: ${VERTEX_PROJECT_ID:-}
+      VERTEX_LOCATION: ${VERTEX_LOCATION:-}
+      VERTEX_MODEL: ${VERTEX_MODEL:-}
+      VERTEX_SERVICE_ACCOUNT_JSON_PATH: ${VERTEX_SERVICE_ACCOUNT_JSON_PATH:-}
+      VERTEX_SERVICE_ACCOUNT_JSON: ${VERTEX_SERVICE_ACCOUNT_JSON:-}
       TTS_PROVIDER: ${TTS_PROVIDER:-local}
       TTS_BASE_URL: ${TTS_BASE_URL:-http://kokoro:8880}
       TTS_VOICE: ${TTS_VOICE:-af_heart}
@@ -104,7 +110,7 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ghcr.io/artcc/freelingo-frontend:latest
+    image: ghcr.io/boredompeaks/freelingo-frontend:latest
     pull_policy: always
     container_name: freelingo-frontend
     restart: unless-stopped

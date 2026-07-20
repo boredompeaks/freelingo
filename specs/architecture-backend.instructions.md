@@ -33,7 +33,7 @@ backend/
 │   │   ├── study_plan.py        # StudyPlan, DayPlan (week-by-week JSON)
 │   │   ├── lesson.py            # Lesson + Exercise
 │   │   ├── competency.py        # UserCompetency (curriculum tracking)
-│   │   ├── flashcard.py         # Flashcard (SM-2 algorithm)
+│   │   ├── flashcard.py         # Flashcard (FSRS algorithm)
 │   │   ├── conversation.py      # Conversation (voice sessions)
 │   │   ├── chat_history.py      # ChatHistory (text chat messages)
 │   │   ├── listening.py         # ListeningExercise, ListeningAttempt
@@ -98,7 +98,7 @@ backend/
 │   │   ├── assessment_voice_trial.py # One-time post-assessment voice demo token service
 │   │   ├── conversation_pipeline.py  # WebSocket voice orchestrator: STT → LLM → TTS
 │   │   ├── email_service.py     # SMTP email (verification, password reset, contact, admin notifications)
-│   │   ├── flashcard_sm2.py     # SM-2 spaced repetition algorithm
+│   │   ├── flashcard_fsrs.py     # FSRS v5 spaced repetition algorithm
 │   │   ├── language_helpers.py  # Language code parsing, script metadata, prompt length guidance, voice/engine selection
 │   │   ├── lesson_generator.py  # LLM-powered lesson content generation
 │   │   ├── listening_service.py # AI listening exercise generation + caching
@@ -145,7 +145,7 @@ The application uses 21 SQLAlchemy ORM model sections organized into 5 domains:
 
 - **Core**: User (authentication, preferences, quotas, Stripe state, post-assessment voice demo state), Progress (daily XP/streak/skills)
 - **Study plan**: StudyPlan, Lesson, Exercise, UserCompetency (curriculum tracking)
-- **Spaced repetition**: Flashcard (SM-2 algorithm)
+- **Spaced repetition**: Flashcard (FSRS algorithm)
 - **Conversations**: Conversation, ChatHistory (text and voice transcripts)
 - **AI-generated/static support content**: ListeningExercise, ListeningAttempt, ReadingExercise, ReadingAttempt (shared exercise pools), ResourceNativeHelp (global native-language cache for static resources)
 - **Community**: FeedbackEntry, FeedbackVote, FeedbackComment (feature requests and bug reports), Review (moderated product reviews)
@@ -164,7 +164,7 @@ All external dependencies are accessed through the service layer. The frontend n
 
 The application uses 18 services plus a centralized `services/prompts/` package organized into 5 domains:
 
-- **LLM & AI**: LLM Adapter (multi-provider), Assessment, Study Plan Generator, Lesson Generator, Flashcard SM-2
+- **LLM & AI**: LLM Adapter (multi-provider), Assessment, Study Plan Generator, Lesson Generator, Flashcard FSRS
 - **Media**: TTS Service, STT Service, Conversation Pipeline (WebSocket voice orchestrator)
 - **Content**: Listening Service, Reading Service (AI-generated exercises with caching; generation responses validated with Pydantic `structured_output()` schemas), Resource Native Help (global cache for static-resource native-language helpers)
 - **User**: Progress Service, Memory Service, Quota Service, Subscription Service, User Language Service

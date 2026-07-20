@@ -112,6 +112,13 @@ export default function LessonPage() {
   const [regeneratingExercise, setRegeneratingExercise] = useState(false)
   const [regenerateError, setRegenerateError] = useState<string | null>(null)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
+
+  const handleDashboardNavigation = useCallback(() => {
+    if (isNavigating) return
+    setIsNavigating(true)
+    router.push('/dashboard')
+  }, [isNavigating, router])
   const [loadingNativeExplanation, setLoadingNativeExplanation] =
     useState(false)
   const [nativeExplanationError, setNativeExplanationError] = useState(false)
@@ -432,10 +439,11 @@ export default function LessonPage() {
               </div>
             )}
             <button
-              onClick={() => router.push('/dashboard')}
-              className="bg-fl-accent text-fl-accent-fg hover:bg-fl-accent/90 mt-8 px-8 py-3 font-mono text-xs font-bold tracking-widest uppercase transition-colors"
+              onClick={handleDashboardNavigation}
+              disabled={isNavigating}
+              className="bg-fl-accent text-fl-accent-fg hover:bg-fl-accent/90 mt-8 px-8 py-3 font-mono text-xs font-bold tracking-widest uppercase transition-colors disabled:opacity-50"
             >
-              {tCommon('backToDashboard')}
+              {isNavigating ? '...' : tCommon('backToDashboard')}
             </button>
           </div>
         </div>
@@ -1140,7 +1148,7 @@ export default function LessonPage() {
         message={t('exitConfirmMessage')}
         confirmLabel={t('exit')}
         danger
-        onConfirm={() => router.push('/dashboard')}
+        onConfirm={handleDashboardNavigation}
         onCancel={() => setShowExitConfirm(false)}
       />
 

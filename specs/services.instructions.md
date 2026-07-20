@@ -51,12 +51,16 @@ LLM-powered lesson content generation with strict constraints:
 - Generates enriched lesson vocabulary items with target-language word, definition, and example fields plus optional native-language translation, example translation, usage note, and optional reading/pronunciation guide. The extra fields are stored inside `lesson.content.vocabulary` and remain backward-compatible with older three-field vocabulary items.
 - Separately evaluates free_write answers and pronunciation (scored 0.0–1.0 with feedback)
 
-## Flashcard SM-2 (`flashcard_sm2.py`)
+## Flashcard FSRS v5 (`flashcard_fsrs.py`)
 
-Full SM-2 spaced repetition algorithm:
+Free Spaced Repetition Scheduler (FSRS) v5 algorithm:
 
-- `sm2_update(card, quality)`: modifies ease_factor, interval, repetitions, and next_review based on 0–5 quality rating
-- LLM-powered `generate_flashcards`: creates flashcards with native-language translations; stored native-language codes are converted to human-readable names before prompt injection.
+- `Rating` IntEnum: `Again=1`, `Hard=2`, `Good=3`, `Easy=4`
+- `State` IntEnum: `New=0`, `Learning=1`, `Review=2`, `Relearning=3`
+- `fsrs_update(card, rating)`: mutates stability, difficulty (clamped 1.0–10.0), state, reps, lapses, last_review, scheduled_days, and next_review based on FSRS v5 optimal weights (w0–w18)
+- `fsrs_retrievability(card)`: returns forgetting-curve value R = (1 + elapsed / (9 × S))^(-1), 1.0 when last_review is None
+- LLM-powered `generate_flashcards`: creates flashcards with native-language translations; stored native-language codes are converted to human-readable names before prompt injection
+- LLM-powered `lookup_word`: single-word lookup via LLM returning a FlashcardCreate schema
 
 ## Resource Native Help (`resource_native_help.py`)
 

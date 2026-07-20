@@ -24,3 +24,7 @@ dist/
 .coverage.*
 coverage.xml
 htmlcov/
+/docker_data/
+/oldsetting.txt
+2026-07-20-030107-command-messageinitcommand-message.txt
+

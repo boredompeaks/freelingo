@@ -676,8 +676,9 @@
     "noCardsHint": "Folosește + Generează pentru a crea primele carduri flash cu AI",
     "tapToHide": "atinge pentru a ascunde",
     "tapToReveal": "atinge pentru a dezvălui",
-    "interval": "Interval",
-    "repetitions": "Rep"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "Tutore AI",

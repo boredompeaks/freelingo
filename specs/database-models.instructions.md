@@ -135,7 +135,7 @@ Exercise rows do not have a dedicated native-language explanation column. New le
 
 ## Flashcard (`flashcards`)
 
-SM-2 spaced repetition cards, per user per language.
+FSRS spaced repetition cards, per user per language.
 
 - id — Type: integer; Notes: Primary key
 - user_id — Type: integer; Notes: FK → users
@@ -145,9 +145,13 @@ SM-2 spaced repetition cards, per user per language.
 - example_sentence — Type: text; Notes: Usage example
 - translation — Type: text; Notes: Translation to user's native language
 - source — Type: varchar(20); Notes: Origin of the card: `NULL` (generated), `"from_text"` (saved from reading exercise)
-- ease_factor — Type: float; Notes: SM-2 ease factor (default 2.5)
-- interval — Type: integer; Notes: Days until next review (default 0)
-- repetitions — Type: integer; Notes: Consecutive correct reviews (default 0)
+- stability — Type: float; Notes: FSRS memory stability in days (S parameter, default 0.0)
+- difficulty — Type: float; Notes: FSRS item difficulty (D parameter, 1.0–10.0, default 0.0)
+- state — Type: integer; Notes: FSRS card state (0=New, 1=Learning, 2=Review, 3=Relearning, default 0)
+- reps — Type: integer; Notes: Total review count (default 0)
+- lapses — Type: integer; Notes: Number of times rated Again (default 0)
+- last_review — Type: date; Notes: Date of last review (nullable)
+- scheduled_days — Type: integer; Notes: Days until next review (default 0)
 - next_review — Type: date; Notes: Date of next review (default today)
 - created_at — Type: datetime; Notes: —
 

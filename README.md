@@ -22,7 +22,7 @@ and review.
 
 The platform combines structure and adaptation: lessons are generated within
 curriculum boundaries with native-language support for lesson and exercise explanations,
-flashcards use SM-2 spaced repetition, and the AI tutor provides contextual streaming
+flashcards use FSRS v5 spaced repetition, and the AI tutor provides contextual streaming
 feedback in English (with optional brief support in the learner's native language).
 Listening exercises are generated on demand by the
 LLM, synthesised to MP3 via TTS, and cached per CEFR level — the user listens,

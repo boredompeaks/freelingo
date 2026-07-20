@@ -32,7 +32,7 @@ export default function VocabularySetPage({
   const router = useRouter()
   const t = useTranslations('vocabulary')
   const tCommon = useTranslations('common')
-  const tTargetLang = useTranslations('targetLanguages')
+  const tLang = useTranslations('languages')
   const activeLanguage = useLanguageStore((s) => s.activeLanguage)
   const user = useAuthStore((s) => s.user)
   const [vocabSet, setVocabSet] = useState<VocabularySet | null>(null)
@@ -46,8 +46,10 @@ export default function VocabularySetPage({
   )
   const [loadingNativeHelp, setLoadingNativeHelp] = useState(false)
   const [nativeHelpError, setNativeHelpError] = useState(false)
+
+  // Use tLang for native language (e.g. 'es' -> 'Spanish'), not tTargetLang ('es-ES')
   const nativeLanguageName = user?.native_language
-    ? tTargetLang(user.native_language)
+    ? tLang(user.native_language)
     : ''
 
   useEffect(() => {

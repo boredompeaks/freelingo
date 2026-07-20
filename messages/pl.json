@@ -676,8 +676,9 @@
     "noCardsHint": "Użyj + Wygeneruj, aby stworzyć pierwsze fiszki z AI",
     "tapToHide": "dotknij aby ukryć",
     "tapToReveal": "dotknij aby pokazać",
-    "interval": "Interwał",
-    "repetitions": "Powt"
+    "stability": "S",
+    "difficulty": "D",
+    "nextIn": "Next"
   },
   "chat": {
     "title": "Korepetytor AI",
