@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, refreshToken } from '@/lib/api'
 import { mapUser } from '@/lib/mappers'
 import { useAuthStore } from '@/store/auth'
 
@@ -35,16 +35,11 @@ export default function BillingSuccessPage() {
     async function confirmSubscription() {
       try {
         if (!useAuthStore.getState().accessToken) {
-          const refreshRes = await fetch('/api/auth/refresh', {
-            method: 'POST',
-            credentials: 'include',
-          })
-          if (!refreshRes.ok) {
+          const token = await refreshToken()
+          if (!token) {
             if (!cancelled) setStatus('error')
             return
           }
-          const { access_token } = await refreshRes.json()
-          useAuthStore.getState().setTokens(access_token)
         }
 
         for (let attempt = 0; attempt < CONFIRMATION_ATTEMPTS; attempt += 1) {

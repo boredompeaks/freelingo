@@ -1,4 +1,10 @@
-import type { ElementType, HTMLAttributes, ReactNode, TouchEvent, MouseEvent } from 'react'
+import type {
+  ElementType,
+  HTMLAttributes,
+  ReactNode,
+  TouchEvent,
+  MouseEvent,
+} from 'react'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { getTargetLanguageTextClass } from '@/lib/target-languages'
@@ -43,7 +49,8 @@ export function TargetLanguageText({
   }, [])
 
   const extractText = (node: ReactNode): string => {
-    if (typeof node === 'string' || typeof node === 'number') return String(node)
+    if (typeof node === 'string' || typeof node === 'number')
+      return String(node)
     if (Array.isArray(node)) return node.map(extractText).join('')
     if (typeof node === 'object' && node !== null && 'props' in node) {
       return extractText((node as any).props.children)
@@ -57,7 +64,10 @@ export function TargetLanguageText({
 
     setLoading(true)
     try {
-      const voice = typeof window !== 'undefined' ? localStorage.getItem('tts_voice') ?? undefined : undefined
+      const voice =
+        typeof window !== 'undefined'
+          ? (localStorage.getItem('tts_voice') ?? undefined)
+          : undefined
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: {
@@ -134,7 +144,7 @@ export function TargetLanguageText({
     >
       {children}
       {(reading || translation) && (
-        <span className="mt-1 block font-mono text-xs leading-relaxed tracking-normal normal-case opacity-70 text-fl-fg">
+        <span className="text-fl-fg mt-1 block font-mono text-xs leading-relaxed tracking-normal normal-case opacity-70">
           {[reading, translation].filter(Boolean).join(' · ')}
         </span>
       )}

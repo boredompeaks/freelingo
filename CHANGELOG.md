@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.5] - 2026-07-25
+
+### Fixed
+
+- **Session termination race condition**: Added 10-second grace period key in Redis (`refresh_grace:{token}`) for rotated refresh tokens and standardized frontend components to use the deduplicated `refreshToken()` utility in `@/lib/api`. Prevents concurrent token refresh calls from invalidating active user sessions.
+- **Registration user language initialization**: Automatically create initial `UserLanguage` database entry upon user registration (`POST /api/auth/register`), preventing uninitialized target language state and 404 errors prior to onboarding completion.
+- **Pydantic Settings validation**: Added `extra="ignore"` to backend `Settings` configuration to allow `.env` files with extra environment variables without throwing startup validation errors.
+
+### Added
+
+- **Database reset utility**: Added `backend/scripts/reset_db.py` to drop database schema, re-apply Alembic migrations, and flush Redis auth keys.
+
 ## [1.9.4] - 2026-07-20
+
 
 ### Fixed
 

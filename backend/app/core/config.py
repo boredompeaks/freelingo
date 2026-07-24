@@ -128,7 +128,7 @@ class Settings(BaseSettings):
             raise ValueError("Duration defaults must be greater than 0")
         return value
 
-    model_config = {"env_file": ".env"}
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()

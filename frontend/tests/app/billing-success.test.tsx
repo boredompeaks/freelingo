@@ -2,8 +2,9 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import React from 'react'
 
-const { mockApiFetch, mockPush } = vi.hoisted(() => ({
+const { mockApiFetch, mockRefreshToken, mockPush } = vi.hoisted(() => ({
   mockApiFetch: vi.fn(),
+  mockRefreshToken: vi.fn(),
   mockPush: vi.fn(),
 }))
 
@@ -29,7 +30,9 @@ vi.mock('next/link', () => ({
 
 vi.mock('@/lib/api', () => ({
   apiFetch: mockApiFetch,
+  refreshToken: mockRefreshToken,
 }))
+
 
 import BillingSuccessPage from '@/app/(auth)/billing/success/page'
 import { useAuthStore } from '@/store/auth'
@@ -85,18 +88,16 @@ describe('BillingSuccessPage', () => {
 
   it('refreshes the session before checking /me when the access token is missing', async () => {
     useAuthStore.setState({ accessToken: null, user: null })
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      jsonResponse({ access_token: 'new-token' })
-    )
+    mockRefreshToken.mockImplementationOnce(async () => {
+      useAuthStore.getState().setTokens('new-token')
+      return 'new-token'
+    })
     mockApiFetch.mockResolvedValueOnce(jsonResponse(me('trialing')))
 
     render(<BillingSuccessPage />)
 
     await waitFor(() => expect(screen.getByText('successTitle')).toBeDefined())
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/refresh', {
-      method: 'POST',
-      credentials: 'include',
-    })
+    expect(mockRefreshToken).toHaveBeenCalled()
     expect(useAuthStore.getState().accessToken).toBe('new-token')
     expect(useAuthStore.getState().user?.subscription_status).toBe('trialing')
   })

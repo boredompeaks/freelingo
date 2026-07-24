@@ -98,14 +98,21 @@ export default function FlashcardsPage() {
     }
   }
 
-  async function handleSpeakingTranscription(transcription: string, assessment?: any) {
+  async function handleSpeakingTranscription(
+    transcription: string,
+    assessment?: any
+  ) {
     if (cards.length === 0) return
     const card = cards[current]
 
     let isCorrect = false
 
     // If we have an Azure pronunciation score, use it
-    if (assessment && assessment.pronunciation_score !== undefined && assessment.pronunciation_score !== null) {
+    if (
+      assessment &&
+      assessment.pronunciation_score !== undefined &&
+      assessment.pronunciation_score !== null
+    ) {
       // Treat >= 60 as correct pronunciation
       isCorrect = assessment.pronunciation_score >= 60
     } else {

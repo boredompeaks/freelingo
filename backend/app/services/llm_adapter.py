@@ -196,20 +196,23 @@ class LLMAdapter:
                 # handler (e.g. _anthropic_chat). Preserve the type instead of
                 # re-wrapping into a generic LLMError.
                 last_error = e
-            except TimeoutError:
-                last_error = LLMTimeoutError(f"{self.provider} timed out after {REQUEST_TIMEOUT}s")
             except Exception as e:
-                error_msg = str(e)
-                if "connection" in error_msg.lower():
-                    last_error = LLMUnavailableError(
-                        f"{self.provider} is unreachable. Check that the service is running."
-                    )
-                elif "rate" in error_msg.lower():
-                    last_error = LLMUnavailableError(
-                        f"{self.provider} rate limit exceeded. Try again later."
+                if type(e).__name__ in ("TimeoutError", "AsyncTimeoutError"):
+                    last_error = LLMTimeoutError(
+                        f"{self.provider} timed out after {REQUEST_TIMEOUT}s"
                     )
                 else:
-                    last_error = LLMError(f"{self.provider} error: {error_msg}")
+                    error_msg = str(e)
+                    if "connection" in error_msg.lower():
+                        last_error = LLMUnavailableError(
+                            f"{self.provider} is unreachable. Check that the service is running."
+                        )
+                    elif "rate" in error_msg.lower():
+                        last_error = LLMUnavailableError(
+                            f"{self.provider} rate limit exceeded. Try again later."
+                        )
+                    else:
+                        last_error = LLMError(f"{self.provider} error: {error_msg}")
 
             if attempt < MAX_RETRIES:
                 await asyncio.sleep(RETRY_DELAY_SECONDS * (attempt + 1))
@@ -258,7 +261,7 @@ class LLMAdapter:
                 raise LLMResponseError("LLM returned empty response")
             return content
         except Exception as e:
-            if isinstance(e, LLMError):
+            if isinstance(e, LLMError) or type(e).__name__ in ("TimeoutError", "AsyncTimeoutError"):
                 raise e
             logger.error(f"Error in _do_chat: {e}")
             raise LLMError(f"LLM chat call failed: {e}") from e

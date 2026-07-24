@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { Loader2 } from 'lucide-react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, refreshToken } from '@/lib/api'
 import { splitYearlyCta, type BillingInterval } from '@/lib/billing-copy'
 import { mapUser } from '@/lib/mappers'
 import { useAuthStore, isSubscribed } from '@/store/auth'
@@ -123,16 +123,11 @@ export default function OnboardingPage() {
     setCheckoutError('')
     try {
       if (!useAuthStore.getState().accessToken) {
-        const refreshRes = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-        })
-        if (!refreshRes.ok) {
+        const token = await refreshToken()
+        if (!token) {
           router.push('/login')
           return
         }
-        const { access_token } = await refreshRes.json()
-        useAuthStore.getState().setTokens(access_token)
       }
 
       const res = await apiFetch('/api/billing/checkout', {

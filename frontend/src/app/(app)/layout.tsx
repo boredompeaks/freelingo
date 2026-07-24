@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAuthStore, isSubscribed } from '@/store/auth'
 import { useConfigStore } from '@/store/config'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, refreshToken } from '@/lib/api'
 import { mapUser } from '@/lib/mappers'
 import { useLogout } from '@/hooks/useLogout'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -87,17 +87,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       loadConfig()
       try {
         if (!accessToken) {
-          const res = await fetch('/api/auth/refresh', {
-            method: 'POST',
-            credentials: 'include',
-          })
-          if (!res.ok) {
+          const newToken = await refreshToken()
+          if (!newToken) {
             logout()
             router.push('/login')
             return
           }
-          const { access_token } = await res.json()
-          setTokens(access_token)
         }
         // Fetch user info if not already loaded
         const meRes = await apiFetch('/api/auth/me')

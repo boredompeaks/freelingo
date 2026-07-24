@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/auth'
+import { refreshToken } from '@/lib/api'
 
 type Subscriber = (src: string | null) => void
 
@@ -57,14 +58,9 @@ export function loadAvatar(avatar: string, accessToken: string | null) {
   pending = fetchAvatar(accessToken)
     .then(async (res) => {
       if (res.status === 401 && accessToken) {
-        const refresh = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-        })
-        if (refresh.ok) {
-          const { access_token } = await refresh.json()
-          useAuthStore.getState().setTokens(access_token)
-          res = await fetchAvatar(access_token)
+        const newToken = await refreshToken()
+        if (newToken) {
+          res = await fetchAvatar(newToken)
         }
       }
       if (!res.ok) return null

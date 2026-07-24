@@ -6,7 +6,7 @@ const BASE_URL = ''
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
 
-async function refreshToken(): Promise<string | null> {
+export async function refreshToken(): Promise<string | null> {
   if (isRefreshing && refreshPromise) {
     return refreshPromise
   }

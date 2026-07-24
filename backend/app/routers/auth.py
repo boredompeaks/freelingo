@@ -106,10 +106,18 @@ async def register(
         is_verified=not settings.EMAIL_ENABLED,
     )
     db.add(user)
+    await db.flush()
+
+    # Create initial UserLanguage entry for target language
+    initial_user_lang = UserLanguage(
+        user_id=user.id,
+        target_language=user.target_language,
+        is_active=True,
+    )
+    db.add(initial_user_lang)
+
     await db.commit()
     await db.refresh(user)
-
-    # UserLanguage is created during onboarding when the user picks a language.
 
     # Auto-login: issue tokens so the frontend can redirect to /onboarding
     access_token = create_access_token(user.id, user.role)
@@ -125,6 +133,7 @@ async def register(
         secure=settings.COOKIE_SECURE,
         samesite="lax",
         max_age=ttl,
+        path="/",
     )
 
     # Send verification email asynchronously (fire-and-forget style — errors are logged, not raised)
@@ -184,6 +193,7 @@ async def login(
         secure=settings.COOKIE_SECURE,
         samesite="lax",
         max_age=ttl,
+        path="/",
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -204,16 +214,23 @@ async def refresh(
 
     user_id = await redis.get(f"refresh:{token}")
     if not user_id:
+        # Check grace period key for concurrent request race conditions during rotation
+        user_id = await redis.get(f"refresh_grace:{token}")
+
+    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
         )
 
-    await redis.delete(f"refresh:{token}")
+    # Move active token to a short 10s grace key before deletion
+    was_active = await redis.delete(f"refresh:{token}")
+    if was_active:
+        await redis.setex(f"refresh_grace:{token}", 10, str(user_id))
 
     new_refresh = create_refresh_token()
     ttl = settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400
-    await redis.setex(f"refresh:{new_refresh}", ttl, user_id)
+    await redis.setex(f"refresh:{new_refresh}", ttl, str(user_id))
 
     response.set_cookie(
         "refresh_token",
@@ -222,6 +239,7 @@ async def refresh(
         secure=settings.COOKIE_SECURE,
         samesite="lax",
         max_age=ttl,
+        path="/",
     )
 
     user = await db.get(User, int(user_id))
@@ -244,7 +262,8 @@ async def logout(
     token = request.cookies.get("refresh_token")
     if token:
         await redis.delete(f"refresh:{token}")
-    response.delete_cookie("refresh_token")
+        await redis.delete(f"refresh_grace:{token}")
+    response.delete_cookie("refresh_token", path="/")
     return {"detail": "Logged out"}
 
 

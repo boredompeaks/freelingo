@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Circle, CircleDot, Diamond, Check, Minus } from 'lucide-react'
 import { PageLoading } from '@/components/ui/page-loading'
 import { getLandingSubscriptionState } from '@/lib/landing-subscription'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, refreshToken } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
 type BillingInterval = 'monthly' | 'yearly'
@@ -69,13 +69,8 @@ export default function PricingSection({
 
     try {
       if (!useAuthStore.getState().accessToken) {
-        const refreshRes = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-        })
-        if (!refreshRes.ok) throw new Error(tBilling('checkoutError'))
-        const { access_token } = await refreshRes.json()
-        useAuthStore.getState().setTokens(access_token)
+        const token = await refreshToken()
+        if (!token) throw new Error(tBilling('checkoutError'))
       }
 
       const res = await apiFetch('/api/billing/checkout', {
