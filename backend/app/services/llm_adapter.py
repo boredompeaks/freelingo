@@ -57,6 +57,22 @@ class LLMContextOverflowError(LLMError):
     pass
 
 
+class NormalizedDelta:
+    def __init__(self, content: str | None = None):
+        self.content = content
+
+
+class NormalizedChoice:
+    def __init__(self, content: str | None = None):
+        self.delta = NormalizedDelta(content)
+
+
+class NormalizedStreamChunk:
+    def __init__(self, content: str | None = None, usage: object | None = None):
+        self.choices = [NormalizedChoice(content)] if content is not None else []
+        self.usage = usage
+
+
 class LLMStream:
     """Wraps an async LLM stream and captures token usage defensively.
 
@@ -64,8 +80,9 @@ class LLMStream:
     if the provider does not return them — callers must always treat them as
     optional and must never raise on their absence.
 
-    The wrapper filters out usage-only chunks (choices=[]) so callers that do
-    ``chunk.choices[0]`` never receive an IndexError.
+    The wrapper normalizes Anthropic/OpenAI stream chunks into standard OpenAI
+    structure (chunk.choices[0].delta.content) and filters out usage-only chunks
+    (choices=[]) so callers that access choice indices never receive an IndexError.
     """
 
     def __init__(self, stream: object) -> None:
@@ -79,6 +96,31 @@ class LLMStream:
 
     async def _iterate(self):
         async for chunk in self._stream:  # type: ignore[union-attr]
+            chunk_type = getattr(chunk, "type", None)
+            if chunk_type is not None and not hasattr(chunk, "choices"):
+                if chunk_type == "content_block_delta":
+                    delta = getattr(chunk, "delta", None)
+                    text = getattr(delta, "text", None) if delta else None
+                    if text:
+                        yield NormalizedStreamChunk(content=text)
+                    continue
+                elif chunk_type in ("message_start", "message_delta"):
+                    usage = getattr(chunk, "usage", None) or getattr(
+                        getattr(chunk, "message", None), "usage", None
+                    )
+                    if usage:
+                        pt = getattr(usage, "input_tokens", None)
+                        ct = getattr(usage, "output_tokens", None)
+                        if pt is not None:
+                            self.prompt_tokens = pt
+                        if ct is not None:
+                            self.completion_tokens = ct
+                        if self.prompt_tokens and self.completion_tokens:
+                            self.total_tokens = self.prompt_tokens + self.completion_tokens
+                    continue
+                else:
+                    continue
+
             # Defensively capture usage from every chunk (the final one for
             # OpenAI-compatible streams, or any event for other providers).
             try:
@@ -275,7 +317,7 @@ class LLMAdapter:
             model=model,
             messages=messages,
             stream=stream,
-            timeout=FALLBACK_TIMEOUT,
+            timeout=settings.LLM_FALLBACK_TIMEOUT,
             **extra,
         )
         if stream:
