@@ -55,10 +55,8 @@ function detectLocale(req: NextRequest): Locale {
   return 'en'
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   // Detect locale first so we can forward it as a request header.
-  // This is needed because request.ts reads incoming request headers/cookies;
-  // a cookie set only on the response is not visible on that same request cycle.
   const locale = detectLocale(req)
 
   const hasRefreshToken = req.cookies.has('refresh_token')
@@ -80,7 +78,6 @@ export function middleware(req: NextRequest) {
   }
 
   // Inject locale as a request header so request.ts picks it up immediately
-  // (even on the very first visit when no NEXT_LOCALE cookie exists yet)
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-next-locale', locale)
 
@@ -99,8 +96,10 @@ export function middleware(req: NextRequest) {
   return response
 }
 
+export const middleware = proxy
+
 export const config = {
   matcher: [
-    '/((?!_next|favicon\.ico|api|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next|favicon\\.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

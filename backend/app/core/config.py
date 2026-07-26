@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
     COOKIE_SECURE: bool = False
     LOG_LEVEL: str = "INFO"
+    LLM_FALLBACK_TIMEOUT: float = 5.0
 
     # Default AI usage quotas for new/subscribed users. A quota value of 0 means unlimited.
     DEFAULT_CONVERSATION_MAX_DURATION: int = 1800
