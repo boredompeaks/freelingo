@@ -169,7 +169,12 @@ class LLMAdapter:
                 )
                 self.model = settings.DEEPSEEK_MODEL
             elif self.provider == "vertex":
-                base_url = f"https://{settings.VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/{settings.VERTEX_PROJECT_ID}/locations/{settings.VERTEX_LOCATION}/endpoints/openapi"
+                location = (
+                    settings.VERTEX_LOCATION
+                    if (settings.VERTEX_LOCATION and settings.VERTEX_LOCATION != "global")
+                    else "us-central1"
+                )
+                base_url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{settings.VERTEX_PROJECT_ID}/locations/{location}/endpoints/openapi"
                 self.client = AsyncOpenAI(
                     base_url=base_url,
                     api_key="dummy_vertex_token",
@@ -362,16 +367,17 @@ class LLMAdapter:
             if not content:
                 raise LLMResponseError("LLM returned empty response")
             return content
-        except (LLMUnavailableError, LLMTimeoutError) as e:
-            logger.warning(f"Primary LLM provider '{self.provider}' unavailable: {e}. Attempting fallbacks...")
+        except Exception as e:
+            logger.warning(
+                f"Primary LLM provider '{self.provider}' failed ({type(e).__name__}: {e}). Attempting fallbacks..."
+            )
             for fb_provider in self._get_fallback_providers():
                 try:
                     logger.info(f"Attempting LLM fallback with '{fb_provider}'")
                     return await self._do_fallback_chat(fb_provider, messages, stream)
                 except Exception as fb_err:
                     logger.warning(f"LLM fallback provider '{fb_provider}' failed: {fb_err}")
-            raise e
-        except Exception as e:
+
             if isinstance(e, LLMError) or type(e).__name__ in ("TimeoutError", "AsyncTimeoutError"):
                 raise e
             logger.error(f"Error in _do_chat: {e}")
