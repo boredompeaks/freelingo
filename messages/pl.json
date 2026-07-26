@@ -345,7 +345,7 @@
       "s2Title": "2. Dane, które zbieramy",
       "s2Intro": "FreeLingo nie jest skierowany do dzieci poniżej 16. roku życia. Gdy tworzysz konto i korzystasz z FreeLingo, przechowywane są następujące dane:",
       "s2i1": "Nazwa użytkownika, wyświetlana nazwa i adres e-mail.",
-      "s2i2": "Zahaszowane hasło (bcrypt — Twoje hasło w postaci zwykłego tekstu nigdy nie jest przechowywane).",
+      "s2i2": "Bezpieczny skrót kryptograficzny danych logowania (dane są chronione jednokierunkowym algorytmem).",
       "s2i3": "Preferencje językowe i ustawienia nauki.",
       "s2i4": "Opcjonalne zdjęcie profilowe.",
       "s2i5": "Historia czatu i rozmów z korepetytorem AI.",

@@ -345,7 +345,7 @@
       "s2Title": "2. Dados que coletamos",
       "s2Intro": "O FreeLingo não é direcionado a menores de 16 anos. Não recolhemos conscientemente dados pessoais de pessoas com menos de 16 anos. Se tiver menos de 16 anos, não crie uma conta nem forneça quaisquer dados pessoais. Ao criar uma conta e usar o FreeLingo, os seguintes dados são armazenados:",
       "s2i1": "Nome de usuário, nome de exibição e endereço de e-mail.",
-      "s2i2": "Senha com hash (bcrypt — sua senha em texto simples nunca é armazenada).",
+      "s2i2": "Hash criptográfico seguro de credenciais (os dados de acesso são protegidos por algoritmo unidirecional).",
       "s2i3": "Preferência de idioma nativo e configurações de aprendizado.",
       "s2i4": "Imagem de avatar de perfil (opcional).",
       "s2i5": "Histórico de chats e conversas com o tutor de IA.",
