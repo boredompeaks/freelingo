@@ -5,10 +5,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.core.database import engine
-from app.core.deps import require_admin
+from app.core.deps import get_redis, require_admin
 from app.core.limiter import limiter
 from app.models.user import User
-from app.utils.redis import redis_client as _redis_client
 
 router = APIRouter(tags=["health"])
 
@@ -19,11 +18,44 @@ async def health(request: Request) -> JSONResponse:  # noqa: ARG001
     return JSONResponse({"status": "ok"})
 
 
+@router.get("/health/ready")
+@limiter.limit("60/minute")
+async def health_ready(
+    request: Request,  # noqa: ARG001
+    redis: object = Depends(get_redis),
+) -> JSONResponse:
+    checks: dict[str, str] = {}
+    ready = True
+
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        checks["db"] = "ok"
+    except Exception as exc:
+        checks["db"] = f"error: {exc}"
+        ready = False
+
+    try:
+        if hasattr(redis, "ping"):
+            await redis.ping()
+        checks["redis"] = "ok"
+    except Exception as exc:
+        checks["redis"] = f"error: {exc}"
+        ready = False
+
+    status_code = 200 if ready else 503
+    return JSONResponse(
+        {"status": "ready" if ready else "unavailable", "checks": checks},
+        status_code=status_code,
+    )
+
+
 @router.get("/api/admin/health")
 @limiter.limit("60/minute")
 async def admin_health(
     request: Request,
     _admin: User = Depends(require_admin),
+    redis: object = Depends(get_redis),
 ) -> JSONResponse:
     checks: dict[str, str] = {}
     ok = True
@@ -37,7 +69,7 @@ async def admin_health(
         ok = False
 
     try:
-        async with _redis_client() as redis:
+        if hasattr(redis, "ping"):
             await redis.ping()
         checks["redis"] = "ok"
     except Exception as exc:

@@ -56,6 +56,9 @@ def mock_redis():
     store = {}
 
     class MockRedis:
+        async def ping(self):
+            return True
+
         async def setex(self, key, ttl, value):
             store[key] = value
 
@@ -109,9 +112,10 @@ async def client(db_session, mock_redis):
     app.dependency_overrides.clear()
 
 
+_DUMMY_PASSWORD_HASH = "$2b$04$123456789012345678901uXy4u4Vq5Xy4u4Vq5Xy4u4Vq5Xy4u4V" # fast mock hash
+
 @pytest_asyncio.fixture
 async def test_user(db_session):
-    from app.core.security import hash_password
     from app.models.user import User
     from app.models.user_language import UserLanguage
 
@@ -119,7 +123,7 @@ async def test_user(db_session):
         username="testuser",
         email="test@example.com",
         display_name="Test User",
-        hashed_password=hash_password("testpass"),
+        hashed_password=_DUMMY_PASSWORD_HASH,
         role="user",
         native_language="es",
         target_language="en-US",
@@ -138,7 +142,6 @@ async def test_user(db_session):
 
 @pytest_asyncio.fixture
 async def admin_user(db_session):
-    from app.core.security import hash_password
     from app.models.user import User
     from app.models.user_language import UserLanguage
 
@@ -146,7 +149,7 @@ async def admin_user(db_session):
         username="admin",
         email="admin@example.com",
         display_name="Admin",
-        hashed_password=hash_password("adminpass"),
+        hashed_password=_DUMMY_PASSWORD_HASH,
         role="admin",
         native_language="en",
         target_language="en-US",

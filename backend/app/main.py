@@ -53,8 +53,10 @@ from app.services.tts_service import AzureTTSService, KokoroTTSService, OpenAITT
 
 
 def _run_migrations() -> None:
-    alembic_cfg = Config("/app/alembic.ini")
-    command.upgrade(alembic_cfg, "head")
+    alembic_ini = "alembic.ini" if os.path.exists("alembic.ini") else "/app/alembic.ini"
+    if os.path.exists(alembic_ini):
+        alembic_cfg = Config(alembic_ini)
+        command.upgrade(alembic_cfg, "head")
 
 
 @asynccontextmanager
@@ -119,6 +121,19 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
 app = FastAPI(title="FreeLingo API", version="0.1.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> Response:
+    logging.getLogger("app.main").error(
+        f"Unhandled exception on {request.method} {request.url.path}: {exc}",
+        exc_info=True,
+    )
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred."},
+    )
 
 app.add_middleware(
     CORSMiddleware,
