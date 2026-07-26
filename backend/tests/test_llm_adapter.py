@@ -302,6 +302,18 @@ class TestLLMAdapterInit:
         assert adapter.model == "deepseek-chat"
         assert adapter.client is not None
 
+    def test_vertex_provider_sanitizes_location(self, monkeypatch):
+        monkeypatch.setattr("app.core.config.settings.LLM_PROVIDER", "vertex")
+        monkeypatch.setattr("app.core.config.settings.VERTEX_PROJECT_ID", "test-project")
+        monkeypatch.setattr("app.core.config.settings.VERTEX_LOCATION", "global")
+        monkeypatch.setattr("app.core.config.settings.VERTEX_MODEL", "google/gemini-1.5-flash")
+
+        from app.services.llm_adapter import LLMAdapter
+
+        adapter = LLMAdapter()
+        assert adapter.provider == "vertex"
+        assert "us-central1-aiplatform.googleapis.com" in str(adapter.client.base_url)
+
     def test_anthropic_provider(self, monkeypatch):
         monkeypatch.setattr("app.core.config.settings.LLM_PROVIDER", "anthropic")
         monkeypatch.setattr("app.core.config.settings.ANTHROPIC_API_KEY", "sk-ant-test")
